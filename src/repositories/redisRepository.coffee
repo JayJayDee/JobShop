@@ -1,6 +1,7 @@
 
 crypto = require('crypto')
 redis = require('redis')
+
 redisConf = require('../configs/redis')
 
 # base CRUD implementation for REDIS
@@ -39,7 +40,7 @@ class RedisRepository
 
   # enqueue new job with payload, 
   # returns with unique job ID 
-  enqueue: (jobPayload) =>
+  enqueueJob: (jobPayload) =>
     queueKey = redisConf.jobQueueKey
     mapKey = redisConf.jobMapKey
     return new Promise((resolve, reject) =>
@@ -67,19 +68,44 @@ class RedisRepository
     )
 
   # get one job to do.
-  dequeue: () =>
+  dequeueJob: () =>
+    queueKey = redisConf.jobQueueKey
+    mapKey = redisConf.jobMapKey
     return new Promise((resolve, reject) =>
-    
+      @client.lpop(queueKey, (err, jobId) =>
+        if err != null 
+          return reject(err)
+        if jobId == null 
+          return resolve(null)
+        
+        @client.hmget(mapKey, jobId, (err, jobPayload) =>
+          if err != null 
+            return reject(err) 
+          retPayload = jobPayload
+
+          @client.hdel(mapKey, jobId, (err, resp) =>
+            if err != null 
+              return reject(err) 
+            resolve(JSON.parse(retPayload))
+          )
+        )
+      )
     )
 
   # update one queue element
-  updateQueueElem: (jobId, updateElem) =>
+  updateJob: (jobId, updateElem) =>
     return new Promise((resolve, reject) =>
-    
+
     )
 
   # returns job queue elements with condition
-  getQueueElems: (condition) =>
+  getJobs: (condition) =>
+    return new Promise((resolve, reject) =>
+
+    )
+
+  # returns job failure logs.
+  getJobFails: (condition) =>
     return new Promise((resolve, reject) =>
 
     )
