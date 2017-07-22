@@ -5,10 +5,12 @@ repo = RedisRepository()
 
 console.log('app entry')
 
-repo.createJobId()
-.then((jobId) =>
-  console.log(jobId)
+repo.enqueue(
+  test: 'test_job_spec'
 )
-.catch((err) =>
+.then((resp) ->
+  console.log(resp)
+)
+.catch((err) ->
   console.log(err)
 )

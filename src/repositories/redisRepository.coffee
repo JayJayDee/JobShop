@@ -40,8 +40,30 @@ class RedisRepository
   # enqueue new job with payload, 
   # returns with unique job ID 
   enqueue: (jobPayload) =>
+    queueKey = redisConf.jobQueueKey
+    mapKey = redisConf.jobMapKey
     return new Promise((resolve, reject) =>
-    
+      @createJobId()
+      .then((jobId) =>
+        stringified = JSON.stringify(jobPayload)
+        @client.hmset(mapKey, jobId, stringified, (err, resp) =>
+          if err != null 
+            return reject(err) 
+          
+          @client.rpush(queueKey, jobId, (err, resp) =>
+            if err != null 
+              return reject(err) 
+            
+            retPayload =
+              job_id: jobId
+              payload: jobPayload
+            resolve(retPayload) 
+          ) 
+        )
+      )
+      .catch((err) =>
+        reject(err) 
+      )
     )
 
   # get one job to do.

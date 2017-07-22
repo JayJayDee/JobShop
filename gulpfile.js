@@ -87,7 +87,7 @@ gulp.task('gen-apidoc', function(cb) {
 
 gulp.task('test', function(cb) {
   var options = {
-    ui: 'tdd',
+    ui: 'bdd',
     reporter: 'nyan',  
     bail: true ,
     compilers: 'coffee:coffee-script'
