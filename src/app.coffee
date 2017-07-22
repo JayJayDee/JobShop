@@ -1,6 +1,7 @@
 
 express = require('express')
 morgan = require('morgan')
+bodyParser = require('body-parser')
 
 validationMiddleware = require('./middlewares/validationMiddleware')
 apiResponseMiddleware = require('./middlewares/apiResponseMiddleware')
@@ -24,6 +25,10 @@ if webConf.accessLog == true
   app.use(morganInst)
 
 # register common middlewares 
+app.use(bodyParser.urlencoded(
+  extended: true
+))
+app.use(bodyParser.json())
 app.use(validationMiddleware)  
 app.use(apiResponseMiddleware)
 

@@ -10,6 +10,14 @@ class ApiController
     )
 
   addJob: (req, res, next) =>
+    jobPayload = req.body
+
+    if JSON.stringify(jobPayload) == '{}'
+      return next(
+        err: 'INVALID_PARAM'
+        data: 'jobPayload must be supplied with body/json'
+      )
+
     res.sendApiSuccess({}) 
 
 
