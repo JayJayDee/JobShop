@@ -40,14 +40,14 @@ class RedisRepository
 
   # enqueue new job with payload, 
   # returns with unique job ID 
-  enqueueJob: (jobPayload) =>
+  addJob: (jobPayload) =>
     queueKey = redisConf.jobQueueKey
-    mapKey = redisConf.jobMapKey
+    jobMapKey = redisConf.jobMapKey
     return new Promise((resolve, reject) =>
       @createJobId()
       .then((jobId) =>
         stringified = JSON.stringify(jobPayload)
-        @client.hmset(mapKey, jobId, stringified, (err, resp) =>
+        @client.hmset(jobMapKey, jobId, stringified, (err, resp) =>
           if err != null 
             return reject(err) 
           
@@ -68,35 +68,40 @@ class RedisRepository
     )
 
   # get one job to do.
-  dequeueJob: () =>
+  fetchJobTodo: () =>
     queueKey = redisConf.jobQueueKey
-    mapKey = redisConf.jobMapKey
+    jobMapKey = redisConf.jobMapKey
+    procMapKey = redisConf.jobProcMapKey
+
     return new Promise((resolve, reject) =>
       @client.lpop(queueKey, (err, jobId) =>
         if err != null 
           return reject(err)
         if jobId == null 
-          return resolve(null)
+          return resolve(null) 
         
-        @client.hmget(mapKey, jobId, (err, jobPayload) =>
+        @client.hmset(procMapKey, jobId, 1, (err, resp) =>
           if err != null 
             return reject(err) 
-          retPayload = jobPayload
-
-          @client.hdel(mapKey, jobId, (err, resp) =>
+          @client.hmget(jobMapKey, jobId, (err, jobPayload) =>
             if err != null 
               return reject(err) 
-            resolve(JSON.parse(retPayload))
+            resolve(
+              job_id: jobId
+              payload: JSON.parse(jobPayload) 
+            )
           )
         )
       )
     )
 
-  # update one queue element
-  updateJob: (jobId, updateElem) =>
-    return new Promise((resolve, reject) =>
+  # make job to success 
+  makeJobSuccess: (jobId) =>
+    jobMapKey = redisConf.jobMapKey
 
-    )
+  # make job to failure
+  makeJobFail: (jobId) =>
+    jobMapKey = redisConf.jobMapKey
 
   # returns job queue elements with condition
   getJobs: (condition) =>

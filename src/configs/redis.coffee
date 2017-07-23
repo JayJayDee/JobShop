@@ -8,6 +8,9 @@ redisConf =
     uniqueGeneratorKey: 'TASKSHOP_UNIQUE_JOB_ID'
     jobQueueKey: 'TASKSHOP_JOB_QUEUE'
     jobMapKey: 'TASKSHOP_JOB_MAP' 
+    jobProcMapKey: 'TASKSHOP_JOB_PROC_MAP'
+    jobFailMapKey: 'TASKSHOP_JOB_FAIL_MAP'
+
     failLogListKey: 'TASHSHOP_FAIL_LOG_LIST' 
 
   prod: 
@@ -17,7 +20,10 @@ redisConf =
     uniqueGeneratorKey: 'TASKSHOP_UNIQUE_JOB_ID'
     jobQueueKey: 'TASKSHOP_JOB_QUEUE'
     jobMapKey: 'TASKSHOP_JOB_MAP' 
-    failLogListKey: 'TASHSHOP_FAIL_LOG_LIST'
+    jobProcMapKey: 'TASKSHOP_JOB_PROC_MAP'
+    jobFailMapKey: 'TASKSHOP_JOB_FAIL_MAP'
+
+    failLogListKey: 'TASHSHOP_FAIL_LOG_LIST' 
 
 exportConf = null
 if process.env.NODE_ENV == 'PROD'
