@@ -3,6 +3,7 @@ crypto = require('crypto')
 redis = require('redis')
 
 redisConf = require('../configs/redis')
+brokerConf = require('../configs/broker') 
 
 # base CRUD implementation for REDIS
 
@@ -79,7 +80,7 @@ class RedisRepository
           return reject(err)
         if jobId == null 
           return resolve(null) 
-        
+
         @client.hmset(procMapKey, jobId, 1, (err, resp) =>
           if err != null 
             return reject(err) 
@@ -98,10 +99,66 @@ class RedisRepository
   # make job to success 
   makeJobSuccess: (jobId) =>
     jobMapKey = redisConf.jobMapKey
+    procMapKey = redisConf.jobProcMapKey
+    return new Promise((resolve, reject) =>
+      @client.hdel(procMapKey, jobId, (err, resp) =>
+        if err != null 
+          return reject(err)
+        if parseInt(resp) != 1 
+          return reject(
+            err: 'NOT_WORKING_JOG' 
+            data: 'job was not working status for job id : ' + jobId 
+          )
+        @client.hdel(jobMapKey, jobId, (err, resp) =>
+          if err != null 
+            return reject(err)
+          resolve({}) 
+        )
+      )
+    )
 
   # make job to failure
   makeJobFail: (jobId) =>
     jobMapKey = redisConf.jobMapKey
+    procMapKey = redisConf.jobProcMapKey
+    failMapKey = redisConf.jobFailMapKey
+    queueKey = redisConf.jobQueueKey
+    return new Promise((resolve, reject) =>
+      @client.hdel(procMapKey, jobId, (err, resp) =>
+        if err != null 
+          return reject(err)
+        if parseInt(resp) != 1 
+          return reject(
+            err: 'NOT_WORKING_JOG' 
+            data: 'job was not working status for job id : ' + jobId 
+          )
+        @client.rpush(queueKey, jobId, (err, resp) =>
+          if err != null 
+            return reject(err) 
+          @client.hmget(failMapKey, jobId, (err, faiCount) =>
+            if err != null 
+              return reject(err)
+            if failCount == null 
+              @client.hmset(failMapKey, jobId, 1, (err, resp) =>
+                return resolve(
+                  job_id: jobId
+                  fail_count: 1 
+                )
+              )
+
+            else if parseInt(failCount) <= brokerConf.retryWhenFail
+              @client.hmset(failMapKey, jobId, parseInt(failCount) + 1, (err, resp) =>
+                if err != null 
+                  return reject(err)
+                return resolve(
+                  job_id: jobId
+                  fail_count: parseInt(failCount) + 1
+                )
+              )
+          )
+        )
+      )
+    )
 
   # returns job queue elements with condition
   getJobs: (condition) =>

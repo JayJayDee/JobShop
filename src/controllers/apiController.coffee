@@ -63,6 +63,15 @@ class ApiController
         err: 'INVALID_PARAM'
         data: 'result must be success or fail'
       )    
+
+    if result == 'success' 
+      @repo.makeJobSuccess(jobId)
+      .then((resp) =>
+        res.sendApiSuccess(resp)
+      )
+      .catch((err) =>
+        return next(err)       
+      )
     
 
 instance = null 
