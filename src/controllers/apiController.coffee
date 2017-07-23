@@ -8,7 +8,11 @@ class ApiController
     expressInst.post('/job', (req, res, next) =>
       @addJob(req, res, next)
     )
+    expressInst.get('/job', (req, res, next) =>
+      @getJob(req, res, next)
+    )
 
+  # POST /job API 
   addJob: (req, res, next) =>
     jobPayload = req.body
 
@@ -18,8 +22,22 @@ class ApiController
         data: 'jobPayload must be supplied with body/json'
       )
 
-    res.sendApiSuccess({}) 
+    @repo.enqueueJob(jobPayload)
+    .then((resp) =>
+      res.sendApiSuccess(resp)
+    )
+    .catch((err) =>
+      return next(err)
+    )
 
+  getJob: (req, res, next) =>
+    @repo.dequeueJob()
+    .then((resp) =>
+      res.sendApiSuccess(resp)
+    )
+    .catch((err) =>
+      return next(err)
+    )
 
 instance = null 
 module.exports = (repository) ->

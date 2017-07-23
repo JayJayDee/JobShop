@@ -17,10 +17,10 @@ class RedisRepository
   _initRedisInst: () =>
     redisInst = redis.createClient(redisConf)
     redisInst.on('ready', () =>
-      console.log('redis ready')
+      log.i('redis ready')
     )
     redisInst.on('connect', () =>
-      console.log('redis connected ' + redisConf.host)
+      log.i('redis connected ' + redisConf.host)
     )
 
   # create new unique job id 
