@@ -73,6 +73,14 @@ class ApiController
         return next(err)       
       )
     
+    else if result == 'fail' 
+      @repo.makeJobFail(jobId) 
+      .then((resp) =>
+        res.sendApiSuccess(resp)
+      )
+      .catch((err) =>
+        return next(err)      
+      )
 
 instance = null 
 module.exports = (repository) ->

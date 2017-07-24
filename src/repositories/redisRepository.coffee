@@ -135,24 +135,46 @@ class RedisRepository
         @client.rpush(queueKey, jobId, (err, resp) =>
           if err != null 
             return reject(err) 
-          @client.hmget(failMapKey, jobId, (err, faiCount) =>
+          @client.hmget(failMapKey, jobId, (err, failCount) =>
             if err != null 
               return reject(err)
+
+            # case of first time failed
             if failCount == null 
               @client.hmset(failMapKey, jobId, 1, (err, resp) =>
                 return resolve(
                   job_id: jobId
                   fail_count: 1 
+                  finally_failed: false
                 )
               )
 
+            # case of failCount within threshold
             else if parseInt(failCount) <= brokerConf.retryWhenFail
               @client.hmset(failMapKey, jobId, parseInt(failCount) + 1, (err, resp) =>
                 if err != null 
                   return reject(err)
+                
+                @client.rpush(queueKey, jobId, (err, resp) =>
+                  if err != null 
+                    return reject(err) 
+                  return resolve(
+                    job_id: jobId
+                    fail_count: parseInt(failCount) + 1 
+                    finally_failed: false 
+                  )
+                )
+              )
+
+            # case of failCount bigger than threshold
+            else if parseInt(failCount) > brokerConf.retryWhenFail
+              @client.hmset(failMapKey, jobId, parseInt(failCount), (err, resp) =>
+                if err != null 
+                  return reject(err) 
                 return resolve(
                   job_id: jobId
-                  fail_count: parseInt(failCount) + 1
+                  fail_count: parseInt(failCount) + 1 
+                  finally_failed: true 
                 )
               )
           )
