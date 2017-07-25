@@ -6,19 +6,19 @@ class ApiController
 
   # map controller methods to rest api endpoints 
   route: (expressInst) =>
-    expressInst.post('/job', (req, res, next) =>
-      @addJob(req, res, next)
+    expressInst.post('/job/push', (req, res, next) =>
+      @pushJob(req, res, next)
     )
-    expressInst.get('/job', (req, res, next) =>
-      @getJob(req, res, next)
+    expressInst.post('/job/pop', (req, res, next) =>
+      @popJob(req, res, next)
     )
     expressInst.put('/job/:job_id/:result', (req, res, next) =>
       @saveJobResult(req, res, next)
     )
 
-  # POST /job API 
+  # POST /job/push API 
   # add a new job payload 
-  addJob: (req, res, next) =>
+  pushJob: (req, res, next) =>
     jobPayload = req.body
     if JSON.stringify(jobPayload) == '{}'
       return next(
@@ -35,9 +35,9 @@ class ApiController
     )
   
 
-  # GET /job API 
+  # POST /job/pop API 
   # get a available job 
-  getJob: (req, res, next) =>
+  popJob: (req, res, next) =>
     @repo.fetchJobTodo()
     .then((resp) =>
       res.sendApiSuccess(resp)

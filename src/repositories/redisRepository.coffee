@@ -112,6 +112,7 @@ class RedisRepository
         @client.hdel(jobMapKey, jobId, (err, resp) =>
           if err != null 
             return reject(err)
+          log.d("JOB SUCCESS, job_id: #{jobId}")
           resolve({}) 
         )
       )
@@ -132,52 +133,44 @@ class RedisRepository
             err: 'NOT_WORKING_JOG' 
             data: 'job was not working status for job id : ' + jobId 
           )
-        @client.rpush(queueKey, jobId, (err, resp) =>
+        @client.hmget(failMapKey, jobId, (err, failResp) =>
           if err != null 
-            return reject(err) 
-          @client.hmget(failMapKey, jobId, (err, failCount) =>
-            if err != null 
-              return reject(err)
+            return reject(err)
 
-            # case of first time failed
-            if failCount == null 
-              @client.hmset(failMapKey, jobId, 1, (err, resp) =>
-                return resolve(
-                  job_id: jobId
-                  fail_count: 1 
-                  finally_failed: false
-                )
-              )
+          failCount = null 
+          if failResp.length == 1
+            if failResp[0] != null 
+              failCount = parseInt(failResp[0])
+            else if failResp[0] == null 
+              failCount = 1
 
-            # case of failCount within threshold
-            else if parseInt(failCount) <= brokerConf.retryWhenFail
-              @client.hmset(failMapKey, jobId, parseInt(failCount) + 1, (err, resp) =>
-                if err != null 
-                  return reject(err)
-                
-                @client.rpush(queueKey, jobId, (err, resp) =>
-                  if err != null 
-                    return reject(err) 
-                  return resolve(
-                    job_id: jobId
-                    fail_count: parseInt(failCount) + 1 
-                    finally_failed: false 
-                  )
-                )
-              )
-
-            # case of failCount bigger than threshold
-            else if parseInt(failCount) > brokerConf.retryWhenFail
-              @client.hmset(failMapKey, jobId, parseInt(failCount), (err, resp) =>
+          # case of failCount within threshold
+          if failCount < brokerConf.retryWhenFail
+            log.d("JOB FAILED, #{failCount} TIMES, job_id: #{jobId}")
+            @client.hmset(failMapKey, jobId, failCount + 1, (err, resp) =>
+              if err != null 
+                return reject(err)
+              
+              @client.rpush(queueKey, jobId, (err, resp) =>
                 if err != null 
                   return reject(err) 
                 return resolve(
                   job_id: jobId
-                  fail_count: parseInt(failCount) + 1 
-                  finally_failed: true 
+                  fail_count: failCount
+                  finally_failed: false 
                 )
               )
-          )
+            )
+
+          # case of failCount bigger than threshold
+          else if failCount >= brokerConf.retryWhenFail
+            log.d('JOB FINALLY FAILED, job_id: ' + jobId)
+            return resolve(
+              job_id: jobId
+              fail_count: failCount
+              finally_failed: true 
+            )
+            
         )
       )
     )
