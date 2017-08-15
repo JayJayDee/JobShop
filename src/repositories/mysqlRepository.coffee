@@ -12,8 +12,6 @@ class MySQLRepository
     @initMysqlRepo()
     .then((resp) =>
       log.i('mysql repo ready')
-
-      @createJobId()
     )
     .catch((err) =>
       log.e(err) 
@@ -44,7 +42,8 @@ class MySQLRepository
     CREATE TABLE IF NOT EXISTS jobshop_job (
       no INT PRIMARY KEY AUTO_INCREMENT,
       job_id VARCHAR(100) NOT NULL UNIQUE, 
-      job_payload VARCHAR(1000) NOT NULL
+      job_payload VARCHAR(1000) NOT NULL,
+      job_status ENUM('IDLE', 'WORKING', 'DONE', 'FAIL') NOT NULL
     )
     """
     return @_queryOps((con) =>
@@ -75,12 +74,14 @@ class MySQLRepository
         con.query(query, (err, rows) =>
           if err != null 
             return reject(err) 
-          currentNo = 0
-          if rows.length > 0
-            currentNo = rows[0].no
-          currentNo++
-          jobId = crypto.createHash('sha256').update(currentNo).digest('hex')
-          resolve(jobId)
+
+          currentCount = 0
+          if rows.length > 0 
+            currentCount = rows[0].no
+          currentCount++
+          rawJobId = currentCount.toString() + '-salt' 
+          newJobId = crypto.createHash('sha256').update(rawJobId).digest('hex')
+          resolve(newJobId)
         )
       )
     )
@@ -94,7 +95,8 @@ class MySQLRepository
       jobshop_job 
     SET
       job_id=?,
-      job_payload=? 
+      job_payload=?,
+      job_status='IDLE'
     """
     return @_queryOps((con) =>
       return new Promise((resolve, reject) =>
@@ -107,7 +109,16 @@ class MySQLRepository
           con.query(query, params, (err, resp) =>
             if err != null 
               return reject(err)
-            resolve(resp)
+            if resp.affectedRows != 1 
+              return reject(
+                err: 'ADD_JOB_FAILURE'
+                data: 'job adding fail'
+              )
+            
+            resolve(
+              job_id: newJobId,
+              payload: jobPayload
+            )
           )
         ) 
         .catch((err) =>
