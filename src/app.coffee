@@ -19,7 +19,8 @@ server = require('http').createServer(app)
 envExpr = null 
 
 # inject repository to controllers
-Repository = require('./repositories/redisRepository') # can change another repos
+#Repository = require('./repositories/redisRepository') # can change another repos
+Repository = require('./repositories/mysqlRepository')
 api = ApiController(Repository())
 
 # register middlewares by web config (see configs/web.coffee)
